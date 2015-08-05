@@ -1,28 +1,6 @@
 #cloud-config
 
 ---
-write-files:
-  - path: /etc/conf.d/nfs
-    permissions: '0644'
-    content: |
-      OPTS_RPC_MOUNTD=""
-  - path: /opt/bin/wupiao
-    permissions: '0755'
-    content: |
-      #!/bin/bash
-      # [w]ait [u]ntil [p]ort [i]s [a]ctually [o]pen
-      [ -n "$1" ] && \
-        until curl -o /dev/null -sIf http://${1}; do \
-          sleep 1 && echo .;
-        done;
-      exit $?
-  - __PROXY_LINE__path: /etc/systemd/system/docker.service.d/http-proxy.conf
-    __PROXY_LINE__owner: core:core
-    __PROXY_LINE__permissions: '0644'
-    __PROXY_LINE__content: |
-      __PROXY_LINE__[Service]
-      __PROXY_LINE__Environment="HTTP_PROXY=__HTTP_PROXY__" "HTTPS_PROXY=__HTTPS_PROXY__" "NO_PROXY=__NO_PROXY__"
-
 coreos:
   etcd2:
     name: __NAME__
@@ -31,10 +9,10 @@ coreos:
     initial-cluster: __ETCD_SEED_CLUSTER__
     proxy: on
   fleet:
-    public-ip: $public_ipv4
+    public-ip: $private_ipv4
     metadata: "role=minion"
   flannel:
-    interface: $public_ipv4
+    interface: $private_ipv4
   units:
     - __PROXY_LINE__name: set-http-proxy.service
       __PROXY_LINE__command: start
@@ -146,3 +124,107 @@ coreos:
   update:
     group: __CHANNEL__
     reboot-strategy: off
+users:
+- name: deploy
+  groups:
+  - docker
+- name: bkonetzny
+  groups:
+  - docker
+  - sudo
+  ssh-authorized-keys:
+  - ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAzGuNy6opTKjpXnTSF5b1Lv/NLlWvGuXXsv2JJPvg29ZTYq5p2XLbsXhumzLpzuF/cN438942QHw7agX9EL+4tYtSs4RpNIKyvrsIXY3OBgNrTUZDrVgBMm1KP+7OR+2jdzizET40KQiKRVL8ghL7xla0H4nlBjWcwMxEvzzRzsbTokV4TAASG8D6EyiXXHAIapgXZ7cBnMcaB5+Fdnj98KtojZxBiOpLOiKjD4RBUezpYVzqAPKPOo+dPeHlrhSiYQbRgaiQPxn7ZYxvMTrDQK6mDf2IjPA8tAv3u09ki0mQ9139mnHBzk7vlOZ/JxdUluxjnEkVqNlMdb1HCntdmw==
+- name: mkuehn
+  groups:
+  - docker
+  - sudo
+  ssh-authorized-keys:
+  - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDiTNOJFboFz7QICm2we/BSYKyFj3OIKjekUAB0wJNposZfEpoaZtp6vzSQ6+Xa15I8+yyOTxCHaiDTfLHkxkWswBajEvYaP8d5wN5vbYMjTM0DsZ6JcYCVCAYO3KdKkFrKLsRpsd7Uy57yWSVmYXcO3ZqEZnWHJDVUxRXDx2OQBBZ9YGRgatoHhgOhh+HrRqdFewEK47hqRT9IjKYnvaSWGRfV+WDponGWQqzjLvYugOO2UHmU/nhpnHO4ggtZdgKGUsh1bZIWz6ZuPAsKKvNotc8ikgNtQ6W74bBZDb3VOJofSUqD3QjoGpDX9xe5kubvA+4jJozR/Wahcro5Ih1x
+- name: pkrion
+  groups:
+  - docker
+  - sudo
+  ssh-authorized-keys:
+  - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCtZfEwhoRitTI9tcPAzVm/IluSrV62CHR4DqFKfXbzvxvyA1+1ruaqJVxyeWkVW8oO7nMxlyW1LMM5gHTIB4o9YEQli0/1vNmH/71YouQVXuqohr8U2sc9Zy+Up9llg0XNP1PizuNQt3VU1ZnQiNuH/575OAO8a/FUHsAzxIs6FQt2Dj0GUc2+tHdqiREPeh8O+pklABun+JBne7mjAP1Tu9V26LlYTECfZSj4odXRembVaoMXDxlny0Ix0crZqxoqsBCAkGpinu8X6Es+PEhA3gqE5ppP+Uy9TUa6wsIumhvn0Bm1GO5Z3DQ4+5085K4YJPlPmUwt9PMtzNnCcFf1
+  - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDKEuqizQmV6n4Y/K9FvGMAyxp41OgUlzU2Sv8l556SZ8u8z1SGdtFT9Pw+/4vyPFYxZsRlXTdoHMVhg5onptW9IInqAPYvFPgPvfKzQmv1o4DuuMAIHz5SgAPU8tfGlvtro59IaXdS+0NXl/wHN9l0enkjKLX+XQy08RNDAx8KAnQWIQo2UnxOEMIlMVeyXB3/wVxum38XBOCkVOgp6gmsxfQKmdGRNiyImpBPYBFuKwH6BcFSKsI3h47BDaozOE4ynh8WKdbfQg2QFUAp0eQxgkb4wbW7fwbe5Xoy3CEqm79xsfYI84wsRwcM43eoPkca59Q1PLyiNU53aoq4WZYCjnktraiwq1EJziAQkBY2KD22P51FDO/XSvJo21CI8x5vFl7zYxq+PiAVaC3/KqvwF2WQO5OrJ2ee0IhXM0I3q9O+5ym23gk91uRyHphSQxqQv3RQRQesdzNWsn+o7JLAONK9apEeD8dfA8f2zrbRHPwrZFlv7vkQROla/0kRvbb/D9T1/ubdPPtkvYn59JA9/TP+YlQ2CWSUxyDnIr6ZQy2t3JyK12RiRRyMVdpErJbyNdfbeQDjUolXukD2NlbpSqFymTKUQ/rCLTj6jL0w1TzEO5uGzKgUGETXedJyGZ0pOp8qnRVcgKVRexWk+xaf2XpJWyxLdtHzxLnUOFQdRQ==
+- name: tstark
+  groups:
+  - docker
+  - sudo
+  ssh-authorized-keys:
+  - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDNVLEeTGy+Nmqcedad1PG6cLeCtfEM5QABg86aE/jPRPLHtAdfdgd9RqQKxum0i9a/gPW6vPWLq4i1pGUo2VUDVHer88M79tz8p6mvUmSJtvaYPNJc9a6ukExtiI0yldrgaayA7Rzqw2cs+OtsdgkimdXQTpuvmSnlQIyRtWsZo6vksClft6XQ4szad+fe3L3nm8BOG2e9uvUCqs/AmfoqtzIiNY7AgIBeqBuud3q2SkQDIy1PXcY7xnk8tsgn/+mHlHvMwl10k77Q9KNZavxzY38gspjQeTTg4bWAILenFx43/C9/RKR/wlGrbV46DXUoYID+rbnwAzJ0SVb1CwU3LRs2jvwpQsdBfP93fn3+mdIbjd1fLjFIxO89oT9FlDY0Pmuh3QcE2kzwkb7+bnLCtCRuJEC1TAupxjTLjMIdkvsCjeMH3wgW5aBlJUPDw0KVGIP9mD+apqJKFDAQD50Uj9kKrhDGC5jRzqj0snvf2/bVg5PhtBXaVmCGEQBb2+I7CgF8cjaQSzEq8D0YxdNX5qmMV/nb4myO0bFdyI4gqEw6z+8wDYuqpcyeyn+zWiyrAM1SbcYtkUzFNNT783MSaDyMCZ4qD+hu8m9Vcb6h6tySIWUsslMuSimT6OmmjWGyWtXXKetf+s2QH+Zh0UU7FnRZ5AWyhDW9vNDjOAYFow==
+write-files:
+  - path: /etc/conf.d/nfs
+    permissions: '0644'
+    content: |
+      OPTS_RPC_MOUNTD=""
+  - path: /opt/bin/wupiao
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      # [w]ait [u]ntil [p]ort [i]s [a]ctually [o]pen
+      [ -n "$1" ] && \
+        until curl -o /dev/null -sIf http://${1}; do \
+          sleep 1 && echo .;
+        done;
+      exit $?
+  - __PROXY_LINE__path: /etc/systemd/system/docker.service.d/http-proxy.conf
+    __PROXY_LINE__owner: core:core
+    __PROXY_LINE__permissions: '0644'
+    __PROXY_LINE__content: |
+      __PROXY_LINE__[Service]
+      __PROXY_LINE__Environment="HTTP_PROXY=__HTTP_PROXY__" "HTTPS_PROXY=__HTTPS_PROXY__" "NO_PROXY=__NO_PROXY__"
+  - path: /etc/motd.d/00-service-api-organize.me.conf
+    permissions: 444
+    owner: root
+    content: |
+      xtractor.io by organize.me
+  - path: /etc/profile.d/fleetctl.sh
+    permissions: 444
+    owner: root
+    content: |
+      #!/bin/bash
+      export FLEETCTL_SSH_USERNAME=${USER}
+  - path: /etc/profile.d/service-api-organize.me.sh
+    permissions: 444
+    owner: root
+    content: |
+      # /etc/skel/.bashrc
+
+      export EDITOR="vi"
+      export LS_OPTIONS='--color=auto'
+
+      alias ls='ls $LS_OPTIONS'
+      alias ll='ls $LS_OPTIONS -alFh'
+      alias l='ls $LS_OPTIONS -AlFh'
+      alias journalctl='sudo journalctl'
+  - path: /etc/profile.d/toolbox.sh
+    permissions: 444
+    owner: root
+    content: |
+      #!/bin/bash
+      echo 'TOOLBOX_DOCKER_IMAGE=organizeme/docker-toolbox' > ${HOME}/.toolboxrc
+      echo 'TOOLBOX_DOCKER_TAG=latest' >> ${HOME}/.toolboxrc
+      echo 'TOOLBOX_USER=root' >> ${HOME}/.toolboxrc
+  - path: /etc/resolv.conf.head
+    permissions: 444
+    owner: root
+    content: |
+      nameserver 10.100.0.10
+  - path: /home/deploy/config/refresh
+    owner: deploy:deploy
+    permissions: 544
+    content: |
+      #!/bin/bash
+      echo $(/usr/bin/etcdctl get /arjive-config) > /home/deploy/config.json
+  # Keep this .dockercfg at the very end of this file. We don't wanna post this sensitive data on coreos.com/validate for validation purposes. We consider this block to be correct, as it has worked many times already.
+  - path: /root/.dockercfg
+    owner: root
+    permissions: 444
+    content: |
+      {
+        "https://index.docker.io/v1/": {
+          "auth": "b3JnYW5pemVtZWRlcGxveTpCYnMkejg3bzlnVnpxQXJaTXRHY3VIa2NQODJUYyNyIWs1QTcmI01uR0o4UWg1ZTltdjkpR0opcVooJjdGeWhn",
+          "email": "dev@organize.me"
+        }
+      }
